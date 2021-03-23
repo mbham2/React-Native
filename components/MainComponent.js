@@ -6,7 +6,7 @@ import About from './AboutComponent';
 import Contact from './ContactComponent';
 import Favorites from './FavoritesComponent';
 import Login from './LoginComponent';
-import { View, Platform, StyleSheet, Text, ScrollView, Image } from 'react-native';
+import { View, Platform, StyleSheet, Text, ScrollView, Image, Alert, ToastAndroid } from 'react-native';
 import { createStackNavigator } from 'react-navigation-stack';
 import { createDrawerNavigator, DrawerItems } from 'react-navigation-drawer';
 import { createAppContainer } from 'react-navigation';
@@ -15,6 +15,8 @@ import SafeAreaView from 'react-native-safe-area-view';
 import { connect } from 'react-redux';
 import { fetchCampsites, fetchComments, fetchPromotions, fetchPartners } from '../redux/ActionCreators';
 import Reservation from './ReservationComponent';
+import NetInfo from '@react-native-community/netinfo';
+
 
 const mapDispatchToProps = {
     fetchCampsites,
@@ -81,7 +83,7 @@ const ReservationNavigator = createStackNavigator(
         Reservation: { screen: Reservation }
     },
     {
-        defaultNavigationOptions: ({navigation}) => ({
+        defaultNavigationOptions: ({ navigation }) => ({
             headerStyle: {
                 backgroundColor: '#5637DD'
             },
@@ -104,7 +106,7 @@ const LoginNavigator = createStackNavigator(
         Login: { screen: Login }
     },
     {
-        defaultNavigationOptions: ({navigation}) => ({
+        defaultNavigationOptions: ({ navigation }) => ({
             headerStyle: {
                 backgroundColor: '#5637DD'
             },
@@ -127,7 +129,7 @@ const FavoriteNavigator = createStackNavigator(
         Favorites: { screen: Favorites }
     },
     {
-        defaultNavigationOptions: ({navigation}) => ({
+        defaultNavigationOptions: ({ navigation }) => ({
             headerStyle: {
                 backgroundColor: '#5637DD'
             },
@@ -205,13 +207,12 @@ const CustomDrawerContentComponent = props => (
                     <Text style={styles.drawerHeaderText}>Nucamp</Text>
                 </View>
             </View>
-            <DrawerItems {...props}/>
+            <DrawerItems {...props} />
         </SafeAreaView>
     </ScrollView>
 );
 
 const MainNavigator = createDrawerNavigator(
-
 
     {
         Login: {
@@ -257,7 +258,7 @@ const MainNavigator = createDrawerNavigator(
             screen: ReservationNavigator,
             navigationOptions: {
                 drawerLabel: 'Reserve Campsite',
-                drawerIcon: ({tintColor}) => (
+                drawerIcon: ({ tintColor }) => (
                     <Icon
                         name='tree'
                         type='font-awesome'
@@ -272,7 +273,7 @@ const MainNavigator = createDrawerNavigator(
             screen: FavoriteNavigator,
             navigationOptions: {
                 drawerLabel: 'My Favorites',
-                drawerIcon: ({tintColor}) => (
+                drawerIcon: ({ tintColor }) => (
                     <Icon
                         name='heart'
                         type='font-awesome'
@@ -325,11 +326,47 @@ const AppNavigator = createAppContainer(MainNavigator);
 
 class Main extends Component {
 
-    componentDidMount(){
+    componentDidMount() {
         this.props.fetchCampsites();
         this.props.fetchComments();
         this.props.fetchPartners();
         this.props.fetchPromotions();
+
+        NetInfo.fetch().then(connectionInfo => {
+            (Platform.OS === 'ios')
+                ? Alert.alert('Initial Network Connectivity Type:', connectionInfo.type)
+                : ToastAndroid.show('Initial Network Connectivity Type: ' +
+                    connectionInfo.type, ToastAndroid.LONG);
+        });
+
+        this.unsubscribeNetInfo = NetInfo.addEventListener(connectionInfo => {
+            this.handleConnectivityChange(connectionInfo);
+        });
+      }
+
+      componentWillUnmount(){
+          this.unsubscribeNetInfo();
+      }
+
+      handleConnectivityChange = connectionInfo => {
+        let connectionMsg = 'You are now connected to an active network.';
+        switch (connectionInfo.type) {
+            case 'none':
+                connectionMsg = 'No network connection is active.';
+                break;
+            case 'unknown':
+                connectionMsg = 'The network connection state is now unknown.';
+                break;
+            case 'cellular':
+                connectionMsg = 'You are now connected to a cellular network.';
+                break;
+            case 'wifi':
+                connectionMsg = 'You are now connected to a WiFi network.';
+                break;
+        }
+        (Platform.OS === 'ios')
+            ? Alert.alert('Connection change:', connectionMsg)
+            : ToastAndroid.show(connectionMsg, ToastAndroid.LONG);
     }
 
     render() {
@@ -350,20 +387,20 @@ class Main extends Component {
 
 const styles = StyleSheet.create({
     container: {
-        flex:1,
+        flex: 1,
     },
     drawerHeader: {
         backgroundColor: '#5637DD',
-        height:140,
-        alignItems:'center',
-        justifyContent:'center',
-        flex:1,
-        flexDirection:'row'
+        height: 140,
+        alignItems: 'center',
+        justifyContent: 'center',
+        flex: 1,
+        flexDirection: 'row'
     },
-    drawerHeaderText:{
+    drawerHeaderText: {
         color: '#fff',
-        fontSize:24,
-        fontWeight:'bold'
+        fontSize: 24,
+        fontWeight: 'bold'
     },
     drawerImage: {
         margin: 10,
@@ -371,9 +408,9 @@ const styles = StyleSheet.create({
         width: 60
     },
     stackIcon: {
-        marginLeft:10,
-        color:'#fff',
-        fontSize:24
+        marginLeft: 10,
+        color: '#fff',
+        fontSize: 24
     }
 });
 
